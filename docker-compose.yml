@@ -1,0 +1,43 @@
+services:
+  registry:
+    image: registry:2.7
+    container_name: registry
+    ports:
+      - "6081:5000"
+    environment:
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+    volumes:
+      - registry-data:/data
+      - ./auth:/auth:ro
+    restart: unless-stopped
+    networks:
+      - registry-network
+
+  registry-ui:
+    image: joxit/docker-registry-ui:latest
+    container_name: registry-ui
+    ports:
+      - "6080:80"
+    environment:
+      REGISTRY_TITLE: "My Local Docker Registry"
+      DELETE_IMAGES: "true"
+      SHOW_CONTENT_DIGEST: "true"
+      # Proxy mode — forces backend requests through the UI container
+      NGINX_PROXY_PASS_URL: http://registry:5000
+      SINGLE_REGISTRY: "true"
+    depends_on:
+      - registry
+    restart: unless-stopped
+    networks:
+      - registry-network
+
+volumes:
+  registry-data:
+
+networks:
+  registry-network:
+    driver: bridge
